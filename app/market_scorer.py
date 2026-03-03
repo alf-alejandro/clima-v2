@@ -151,12 +151,13 @@ class MarketScorer:
         return 0
 
     def _time_score(self, city: str) -> int:
-        """Score por hora local (ventana activa V2: 12-17h).
+        """Score por hora local.
 
         ≥ 16h → 20 pts (clima casi definido, edge real)
         14–16h → 15 pts
         12–14h → 10 pts
-        < 12h  →  0 pts (fuera de ventana V2)
+        11–12h →  5 pts (primera hora elegible — MIN_LOCAL_HOUR=11)
+        < 11h  →  0 pts
         """
         offset = CITY_UTC_OFFSET.get(city)
         if offset is None:
@@ -169,4 +170,6 @@ class MarketScorer:
             return 15
         if h >= 12:
             return 10
+        if h >= 11:
+            return 5
         return 0
