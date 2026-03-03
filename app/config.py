@@ -1,12 +1,12 @@
 import os
 
-# --- Strategy V2: Focused YES (12–17h local, 5 cities) ---
+# --- Strategy V2: Focused YES (12–17h Chile time, 5 cities) ---
 # Base: Score-Filtered YES (6-12¢, score ≥ 60, TP 15¢, sin stop loss)
-# V2 restricts entries to local hours 12–17 only, and to 5 target cities:
+# V2 restricts entries to 12–17h hora Chile (UTC-3) only, and to 5 target cities:
 #   Buenos Aires, Miami, Toronto, Seattle, NYC
 #
-# Observación: el horario 12-17h local captura el momento donde la temperatura
-#              del día ya está casi definida → mayor precisión de señal
+# Observación: el horario 12-17h Chile es la ventana de operación del trader.
+#              Se usa hora Chile como referencia única para todas las ciudades.
 #
 # Por defecto: fines de semana BLOQUEADOS (WEEKEND_ENABLED=false)
 # Si WEEKEND_ENABLED=true: usa umbrales WEEKEND_* (más conservadores)
@@ -45,8 +45,12 @@ POSITION_SIZE_MAX = float(os.environ.get("POSITION_SIZE_MAX", 0.020))
 MIN_VOLUME        = float(os.environ.get("MIN_VOLUME", 200))
 MONITOR_INTERVAL  = int(os.environ.get("MONITOR_INTERVAL", 30))
 SCAN_DAYS_AHEAD   = int(os.environ.get("SCAN_DAYS_AHEAD", 1))
-MIN_LOCAL_HOUR    = int(os.environ.get("MIN_LOCAL_HOUR", 12))   # V2: solo desde las 12h
-MAX_LOCAL_HOUR    = int(os.environ.get("MAX_LOCAL_HOUR", 17))   # V2: solo hasta las 17h
+MIN_LOCAL_HOUR    = int(os.environ.get("MIN_LOCAL_HOUR", 12))   # V2: ventana desde las 12h Chile
+MAX_LOCAL_HOUR    = int(os.environ.get("MAX_LOCAL_HOUR", 17))   # V2: ventana hasta las 17h Chile
+
+# ── Zona horaria del operador (Chile = UTC-3 en verano) ───────────────────────
+# Todas las horas de entrada se evalúan en esta zona horaria
+OBSERVER_UTC_OFFSET = int(os.environ.get("OBSERVER_UTC_OFFSET", -3))
 MAX_POSITIONS     = int(os.environ.get("MAX_POSITIONS", 20))
 PRICE_UPDATE_INTERVAL = int(os.environ.get("PRICE_UPDATE_INTERVAL", 10))
 
