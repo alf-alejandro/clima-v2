@@ -37,7 +37,7 @@ SCORE_VOLUME_LOW  = float(os.environ.get("SCORE_VOLUME_LOW",  200))
 # ── Price history ─────────────────────────────────────────────────────────────
 PRICE_HISTORY_TTL = int(os.environ.get("PRICE_HISTORY_TTL", 3600))
 
-# ── Position sizing (1.0%–2.0% inversamente proporcional al YES price) ────────
+# ── Position sizing (2.0%–3.0% inversamente proporcional al YES price) ────────
 POSITION_SIZE_MIN = float(os.environ.get("POSITION_SIZE_MIN", 0.020))
 POSITION_SIZE_MAX = float(os.environ.get("POSITION_SIZE_MAX", 0.030))
 
@@ -45,12 +45,22 @@ POSITION_SIZE_MAX = float(os.environ.get("POSITION_SIZE_MAX", 0.030))
 MIN_VOLUME        = float(os.environ.get("MIN_VOLUME", 200))
 MONITOR_INTERVAL  = int(os.environ.get("MONITOR_INTERVAL", 30))
 SCAN_DAYS_AHEAD   = int(os.environ.get("SCAN_DAYS_AHEAD", 1))
-MIN_LOCAL_HOUR    = int(os.environ.get("MIN_LOCAL_HOUR", 12))   # V2: ventana desde las 12h Chile
-MAX_LOCAL_HOUR    = int(os.environ.get("MAX_LOCAL_HOUR", 17))   # V2: ventana hasta las 17h Chile
-
 # ── Zona horaria del operador (Chile = UTC-3 en verano) ───────────────────────
-# Todas las horas de entrada se evalúan en esta zona horaria
+# Todas las horas se evalúan en esta zona horaria
 OBSERVER_UTC_OFFSET = int(os.environ.get("OBSERVER_UTC_OFFSET", -3))
+
+# ── Ventana horaria V2 (hora Chile) ───────────────────────────────────────────
+# 12:00 – 16:14 → apertura normal de posiciones
+# 16:15 – 16:59 → no abre más, cierra las que estén en verde
+# 17:00+        → cierra todas las posiciones al precio actual
+ENTRY_OPEN_HOUR     = int(os.environ.get("ENTRY_OPEN_HOUR",    12))
+ENTRY_OPEN_MINUTE   = int(os.environ.get("ENTRY_OPEN_MINUTE",   0))
+ENTRY_CLOSE_HOUR    = int(os.environ.get("ENTRY_CLOSE_HOUR",   16))
+ENTRY_CLOSE_MINUTE  = int(os.environ.get("ENTRY_CLOSE_MINUTE", 15))
+GREEN_CLOSE_HOUR    = int(os.environ.get("GREEN_CLOSE_HOUR",   16))
+GREEN_CLOSE_MINUTE  = int(os.environ.get("GREEN_CLOSE_MINUTE", 15))
+FORCE_CLOSE_HOUR    = int(os.environ.get("FORCE_CLOSE_HOUR",   17))
+FORCE_CLOSE_MINUTE  = int(os.environ.get("FORCE_CLOSE_MINUTE",  0))
 MAX_POSITIONS     = int(os.environ.get("MAX_POSITIONS", 20))
 PRICE_UPDATE_INTERVAL = int(os.environ.get("PRICE_UPDATE_INTERVAL", 10))
 

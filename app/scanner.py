@@ -5,8 +5,8 @@ from datetime import datetime, timezone, timedelta
 
 from app.config import (
     GAMMA, WEATHER_CITIES, MIN_YES_PRICE, MAX_YES_PRICE, TAKE_PROFIT_YES,
-    MIN_VOLUME, SCAN_DAYS_AHEAD, CITY_UTC_OFFSET, MIN_LOCAL_HOUR, MAX_LOCAL_HOUR,
-    OBSERVER_UTC_OFFSET,
+    MIN_VOLUME, SCAN_DAYS_AHEAD, CITY_UTC_OFFSET, OBSERVER_UTC_OFFSET,
+    ENTRY_OPEN_HOUR, ENTRY_OPEN_MINUTE, ENTRY_CLOSE_HOUR, ENTRY_CLOSE_MINUTE,
 )
 
 CLOB = "https://clob.polymarket.com"
@@ -53,10 +53,10 @@ def get_prices(m):
 
 
 def city_is_ready(city, scan_date, today):
-    """V2: solo acepta entradas cuando la hora en Chile (OBSERVER_UTC_OFFSET) está entre 12 y 17h.
+    """V2: solo acepta entradas cuando la hora Chile está en la ventana de apertura (12:00–16:14).
 
     El check de fecha usa la hora local de la ciudad (para escanear el día correcto).
-    El check de ventana horaria usa hora Chile (UTC-3), que es la referencia del operador.
+    El check de ventana horaria usa hora Chile (OBSERVER_UTC_OFFSET), referencia del operador.
     """
     city_offset = CITY_UTC_OFFSET.get(city)
     if city_offset is None:
@@ -65,9 +65,12 @@ def city_is_ready(city, scan_date, today):
     city_local = now_utc() + timedelta(hours=city_offset)
     if city_local.date() != scan_date:
         return False
-    # ¿Estamos dentro de la ventana 12-17h hora Chile?
-    chile_now = now_utc() + timedelta(hours=OBSERVER_UTC_OFFSET)
-    return MIN_LOCAL_HOUR <= chile_now.hour <= MAX_LOCAL_HOUR
+    # ¿Estamos dentro de la ventana de apertura (12:00 – 16:14) hora Chile?
+    chile_now  = now_utc() + timedelta(hours=OBSERVER_UTC_OFFSET)
+    chile_mins = chile_now.hour * 60 + chile_now.minute
+    open_mins  = ENTRY_OPEN_HOUR  * 60 + ENTRY_OPEN_MINUTE   # 720
+    close_mins = ENTRY_CLOSE_HOUR * 60 + ENTRY_CLOSE_MINUTE  # 975
+    return open_mins <= chile_mins < close_mins
 
 
 def build_event_slug(city, date):

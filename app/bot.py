@@ -1,4 +1,4 @@
-"""bot.py — V2: Focused YES — 5 cities, 12–17h local only.
+"""bot.py — V2: Focused YES — 5 cities, ventana horaria Chile.
 
 Cycle:
   1. Gamma discovery → candidates (NO 0.88-0.97 = YES 0.03-0.12)
@@ -7,8 +7,11 @@ Cycle:
   4. Entry gate: YES en rango_activo AND score >= score_activo
   5. Open positions para entradas confirmadas
   6. Update prices para posiciones abiertas
-  7. Exits: YES >= 0.15 (TP), YES >= 0.99 (WON), NO >= 0.99 (LOST)
-  8. Purge stale scorer history
+  7. Exits normales: YES >= 0.15 (TP), YES >= 0.99 (WON), NO >= 0.99 (LOST)
+  8. Exits horarios (hora Chile):
+       16:15–16:59 → cierra posiciones en verde (P&L > 0)
+       17:00+      → cierra TODAS las posiciones al precio actual
+  9. Purge stale scorer history
 
 Regímenes:
   SEMANA (lun–vie): YES 6–12¢, score ≥ 60  → alta volatilidad, gana
@@ -17,12 +20,12 @@ Regímenes:
 
 V2 restricciones:
   - Solo ciudades: buenos-aires, miami, toronto, seattle, nyc
-  - Solo entradas entre las 12h y 17h hora local de cada ciudad
+  - Solo abre posiciones entre 12:00 y 16:14 hora Chile
 """
 
 import threading
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from app.scanner import (
     scan_opportunities, fetch_live_prices, fetch_yes_price_clob,
@@ -34,11 +37,24 @@ from app.config import (
     WEEKEND_ENABLED,
     WEEKDAY_YES_MIN, WEEKDAY_YES_MAX, WEEKDAY_MIN_SCORE,
     WEEKEND_YES_MIN, WEEKEND_YES_MAX, WEEKEND_MIN_SCORE,
+    OBSERVER_UTC_OFFSET,
+    GREEN_CLOSE_HOUR, GREEN_CLOSE_MINUTE,
+    FORCE_CLOSE_HOUR, FORCE_CLOSE_MINUTE,
 )
 
 log = logging.getLogger(__name__)
 
 MAX_CLOB_VERIFY = 15
+
+
+def chile_mins() -> int:
+    """Minutos desde medianoche en hora Chile (OBSERVER_UTC_OFFSET)."""
+    now = datetime.now(timezone.utc) + timedelta(hours=OBSERVER_UTC_OFFSET)
+    return now.hour * 60 + now.minute
+
+
+_GREEN_CLOSE_MINS = GREEN_CLOSE_HOUR * 60 + GREEN_CLOSE_MINUTE  # 975 (16:15)
+_FORCE_CLOSE_MINS = FORCE_CLOSE_HOUR * 60 + FORCE_CLOSE_MINUTE  # 1020 (17:00)
 
 
 def is_weekend() -> bool:
@@ -302,6 +318,45 @@ class BotRunner:
                             f"fuera del rango ({MIN_YES_PRICE*100:.0f}–{MAX_YES_PRICE*100:.0f}¢)"
                         ),
                     )
+
+            # ── Cierres horarios (hora Chile) ──────────────────────────────────
+            mins = chile_mins()
+            if mins >= _FORCE_CLOSE_MINS:
+                # 17:00+ → cierra TODO al precio actual
+                for cid, pos in list(portfolio.positions.items()):
+                    current_yes = pos.get("current_yes", pos.get("entry_yes", 0.0))
+                    pnl = round(pos["tokens"] * current_yes - pos["allocated"], 2)
+                    sign = "+" if pnl >= 0 else ""
+                    gain_pct = pnl / pos["allocated"] * 100 if pos["allocated"] else 0
+                    log.info(
+                        "Cierre forzado 17:00h %s — YES=%.1f¢ P&L=%s$%.2f",
+                        pos["question"][:40], current_yes * 100, sign, abs(pnl),
+                    )
+                    portfolio._close_position(
+                        cid, "FORCE_CLOSE", pnl,
+                        resolution=(
+                            f"Cierre forzado 17:00h · YES={current_yes*100:.1f}¢ "
+                            f"({sign}{gain_pct:.0f}%)"
+                        ),
+                    )
+            elif mins >= _GREEN_CLOSE_MINS:
+                # 16:15–16:59 → cierra solo las que están en verde
+                for cid, pos in list(portfolio.positions.items()):
+                    current_yes = pos.get("current_yes", pos.get("entry_yes", 0.0))
+                    pnl = round(pos["tokens"] * current_yes - pos["allocated"], 2)
+                    if pnl > 0:
+                        gain_pct = pnl / pos["allocated"] * 100
+                        log.info(
+                            "Cierre en verde 16:15h %s — YES=%.1f¢ +$%.2f",
+                            pos["question"][:40], current_yes * 100, pnl,
+                        )
+                        portfolio._close_position(
+                            cid, "TAKE_PROFIT", pnl,
+                            resolution=(
+                                f"Cierre en verde 16:15h · YES={current_yes*100:.1f}¢ "
+                                f"(entrada {pos['entry_yes']*100:.1f}¢, +{gain_pct:.0f}%)"
+                            ),
+                        )
 
             portfolio.record_capital()
 
