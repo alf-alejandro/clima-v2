@@ -229,7 +229,7 @@ footer { text-align:center; font-size:0.62rem; color:var(--dim); padding:16px; l
 
   <!-- Strategy -->
   <div class="strategy">
-    <div class="strategy-title">Estrategia V2 — Focused YES · 5 Ciudades · 12–17h Local</div>
+    <div class="strategy-title">Estrategia V2 — Focused YES · 5 Ciudades · 11–17h Chile</div>
     <div class="strategy-grid">
       <div class="strategy-item"><label>Entrada YES (activa)</label><p id="s-range" style="color:var(--amber)">6–11.5¢</p></div>
       <div class="strategy-item"><label>Score Mínimo</label><p id="s-score" style="color:var(--blue)">≥ 60 pts</p></div>
@@ -237,8 +237,8 @@ footer { text-align:center; font-size:0.62rem; color:var(--dim); padding:16px; l
       <div class="strategy-item"><label>Sizing</label><p style="color:var(--accent)">2–3% (inverso al precio)</p></div>
     </div>
     <div class="strategy-divider">
-      <div><span style="color:var(--green);font-weight:700">SEMANA (lun–vie)</span> — YES 6–12¢, score ≥ 60</div>
-      <div><span style="color:var(--green);font-weight:700">FINDE (sáb–dom)</span> — YES 6–12¢, score ≥ 60 · mismas condiciones que semana</div>
+      <div><span style="color:var(--green);font-weight:700">SEMANA (lun–vie)</span> — YES 6–11.5¢, score ≥ 60</div>
+      <div><span style="color:var(--green);font-weight:700">FINDE (sáb–dom)</span> — YES 6–11.5¢, score ≥ 60 · mismas condiciones que semana</div>
       <div class="score-row" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
         <div><span style="color:var(--amber)">Ciudades</span> — Buenos Aires · Miami · Toronto · Seattle · NYC</div>
         <div><span style="color:var(--amber)">Ventana</span> — 11:00–16:14 abre · 16:15 cierra verdes · 17:00 cierra todo</div>
@@ -546,8 +546,9 @@ function updateRegimeBadge(data) {
   const regime  = data.regime || "—";
   const blocked = data.regime_blocked;
   const badge   = $id("regime-badge");
-  const yMin    = ((data.active_yes_min || 0.06) * 100).toFixed(0);
-  const yMax    = ((data.active_yes_max || 0.12) * 100).toFixed(0);
+  const fmtC = v => { const n = +(v * 100).toFixed(1); return Number.isInteger(n) ? n.toString() : n.toFixed(1); };
+  const yMin    = fmtC(data.active_yes_min || 0.06);
+  const yMax    = fmtC(data.active_yes_max || 0.115);
   const sc      = data.active_min_score || 60;
 
   if (blocked) {
