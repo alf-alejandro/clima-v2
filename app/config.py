@@ -53,7 +53,7 @@ OBSERVER_UTC_OFFSET = int(os.environ.get("OBSERVER_UTC_OFFSET", -3))
 # 12:00 – 16:14 → apertura normal de posiciones
 # 16:15 – 16:59 → no abre más, cierra las que estén en verde
 # 17:00+        → cierra todas las posiciones al precio actual
-ENTRY_OPEN_HOUR     = int(os.environ.get("ENTRY_OPEN_HOUR",    12))
+ENTRY_OPEN_HOUR     = int(os.environ.get("ENTRY_OPEN_HOUR",    11))
 ENTRY_OPEN_MINUTE   = int(os.environ.get("ENTRY_OPEN_MINUTE",   0))
 ENTRY_CLOSE_HOUR    = int(os.environ.get("ENTRY_CLOSE_HOUR",   16))
 ENTRY_CLOSE_MINUTE  = int(os.environ.get("ENTRY_CLOSE_MINUTE", 15))
