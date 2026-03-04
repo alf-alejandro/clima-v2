@@ -12,7 +12,7 @@ import os
 # Si WEEKEND_ENABLED=true: usa umbrales WEEKEND_* (más conservadores)
 
 # ── Day-of-week regime ────────────────────────────────────────────────────────
-WEEKEND_ENABLED = os.environ.get("WEEKEND_ENABLED", "false").lower() == "true"
+WEEKEND_ENABLED = os.environ.get("WEEKEND_ENABLED", "true").lower() == "true"
 
 WEEKDAY_YES_MIN   = float(os.environ.get("WEEKDAY_YES_MIN",   0.06))
 WEEKDAY_YES_MAX   = float(os.environ.get("WEEKDAY_YES_MAX",   0.12))
