@@ -15,11 +15,11 @@ import os
 WEEKEND_ENABLED = os.environ.get("WEEKEND_ENABLED", "true").lower() == "true"
 
 WEEKDAY_YES_MIN   = float(os.environ.get("WEEKDAY_YES_MIN",   0.06))
-WEEKDAY_YES_MAX   = float(os.environ.get("WEEKDAY_YES_MAX",   0.12))
+WEEKDAY_YES_MAX   = float(os.environ.get("WEEKDAY_YES_MAX",   0.115))
 WEEKDAY_MIN_SCORE = int(os.environ.get("WEEKDAY_MIN_SCORE",   60))
 
 WEEKEND_YES_MIN   = float(os.environ.get("WEEKEND_YES_MIN",   0.06))
-WEEKEND_YES_MAX   = float(os.environ.get("WEEKEND_YES_MAX",   0.12))
+WEEKEND_YES_MAX   = float(os.environ.get("WEEKEND_YES_MAX",   0.115))
 WEEKEND_MIN_SCORE = int(os.environ.get("WEEKEND_MIN_SCORE",   60))
 
 MIN_YES_PRICE   = WEEKDAY_YES_MIN
