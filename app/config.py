@@ -19,8 +19,8 @@ WEEKDAY_YES_MAX   = float(os.environ.get("WEEKDAY_YES_MAX",   0.12))
 WEEKDAY_MIN_SCORE = int(os.environ.get("WEEKDAY_MIN_SCORE",   60))
 
 WEEKEND_YES_MIN   = float(os.environ.get("WEEKEND_YES_MIN",   0.06))
-WEEKEND_YES_MAX   = float(os.environ.get("WEEKEND_YES_MAX",   0.10))
-WEEKEND_MIN_SCORE = int(os.environ.get("WEEKEND_MIN_SCORE",   75))
+WEEKEND_YES_MAX   = float(os.environ.get("WEEKEND_YES_MAX",   0.12))
+WEEKEND_MIN_SCORE = int(os.environ.get("WEEKEND_MIN_SCORE",   60))
 
 MIN_YES_PRICE   = WEEKDAY_YES_MIN
 MAX_YES_PRICE   = WEEKDAY_YES_MAX
