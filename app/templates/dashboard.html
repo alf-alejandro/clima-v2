@@ -221,9 +221,11 @@ footer { text-align:center; font-size:0.62rem; color:var(--dim); padding:16px; l
     <div class="kpi"><div class="kpi-label">Disponible</div><div id="m-disponible" class="kpi-value c-white">$0.00</div></div>
     <div class="kpi"><div class="kpi-label">P&L</div><div id="m-pnl" class="kpi-value c-white">$0.00</div></div>
     <div class="kpi"><div class="kpi-label">ROI</div><div id="m-roi" class="kpi-value c-white">0.00%</div></div>
-    <div class="kpi"><div class="kpi-label">G / P</div><div id="m-wl" class="kpi-value c-white">0 / 0</div></div>
+    <div class="kpi"><div class="kpi-label">Win Rate</div><div id="m-winrate" class="kpi-value c-white">—</div></div>
+    <div class="kpi"><div class="kpi-label">Profit Factor</div><div id="m-pf" class="kpi-value c-white">—</div></div>
+    <div class="kpi"><div class="kpi-label">Trades</div><div id="m-trades" class="kpi-value c-white">—</div></div>
+    <div class="kpi"><div class="kpi-label">Max Drawdown</div><div id="m-maxdd" class="kpi-value c-red">—</div></div>
     <div class="kpi"><div class="kpi-label">Mercados</div><div id="m-tracked" class="kpi-value c-amber">0</div></div>
-    <div class="kpi"><div class="kpi-label">Score ≥60</div><div id="m-highscore" class="kpi-value c-green">0</div></div>
     <div class="kpi"><div class="kpi-label">Escaneos</div><div id="m-scans" class="kpi-value c-white">0</div></div>
   </div>
 
@@ -329,17 +331,19 @@ footer { text-align:center; font-size:0.62rem; color:var(--dim); padding:16px; l
   <!-- Insights -->
   <div id="insights-panel" class="chart-panel hidden">
     <div class="panel-title">
-      Insights
+      Performance por Ciudad
       <span id="insights-trades" style="color:var(--dim);font-weight:400"></span>
     </div>
     <div class="insights-grid">
       <div>
-        <div style="font-size:.6rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Win Rate por Ciudad</div>
+        <div style="font-size:.6rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Win Rate &amp; Profit Factor</div>
         <div id="insights-city"></div>
       </div>
       <div>
-        <div style="font-size:.6rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Win Rate por Hora UTC</div>
-        <div id="insights-hour"></div>
+        <div style="font-size:.6rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">P&amp;L por Ciudad ($)</div>
+        <div style="position:relative;height:180px">
+          <canvas id="cityPnlChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -520,6 +524,8 @@ function updateChart(hist, currentPnl) {
   pnlEl.className    = "chart-stat-value " + (isGain ? "c-green" : "c-red");
 
   $id("chart-drawdown").textContent = maxDD > 0 ? "-$" + maxDD.toFixed(2) : "$0.00";
+  const ddEl = $id("m-maxdd");
+  if (ddEl) { ddEl.textContent = maxDD > 0 ? "-$" + maxDD.toFixed(2) : "$0.00"; }
 
   const badge = $id("chart-pnl-badge");
   badge.className   = "chart-badge " + (isGain ? "gain" : "loss");
@@ -592,9 +598,7 @@ function updateUI(data) {
   roiEl.textContent = pnlSign(data.roi) + data.roi.toFixed(2) + "%";
   roiEl.className   = "kpi-value " + pnlColor(data.roi);
 
-  $id("m-wl").textContent        = data.won + " / " + data.lost;
   $id("m-tracked").textContent   = data.tracked_markets || 0;
-  $id("m-highscore").textContent = data.high_score_count || 0;
   $id("m-scans").textContent     = data.scan_count;
 
   lastPriceUpdateISO = data.last_price_update || null;
@@ -692,21 +696,104 @@ function winBar(rate) {
   const color = rate >= 0.7 ? "var(--green)" : rate >= 0.5 ? "var(--amber)" : "var(--red)";
   return `<div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
 }
+
+let cityPnlChartInst = null;
+
 function updateInsights(ins) {
   const panel = $id("insights-panel");
   if (!ins) { panel.classList.add("hidden"); return; }
   panel.classList.remove("hidden");
-  $id("insights-trades").textContent = `Win rate: ${(ins.overall_win_rate*100).toFixed(0)}% (${ins.total_trades} trades)`;
-  $id("insights-city").innerHTML = ins.by_city.map(c =>
-    `<div class="bar-row">
-      <div class="bar-row-labels"><span>${c.city}</span><span>${c.trades} trades</span></div>
+
+  // Global KPIs from insights
+  const wrEl = $id("m-winrate");
+  const pfEl = $id("m-pf");
+  const trEl = $id("m-trades");
+  if (wrEl) {
+    const wr = (ins.overall_win_rate * 100).toFixed(0);
+    wrEl.textContent = wr + "%";
+    wrEl.className = "kpi-value " + (ins.overall_win_rate >= 0.5 ? "c-green" : "c-red");
+  }
+  if (pfEl) {
+    const pf = ins.profit_factor;
+    pfEl.textContent = pf != null ? pf.toFixed(2) : "—";
+    pfEl.className = "kpi-value " + (pf != null && pf >= 1 ? "c-green" : pf != null ? "c-red" : "c-white");
+  }
+  if (trEl) { trEl.textContent = ins.total_trades; }
+
+  $id("insights-trades").textContent =
+    `WR ${(ins.overall_win_rate*100).toFixed(0)}%  ·  PF ${ins.profit_factor != null ? ins.profit_factor.toFixed(2) : "—"}  ·  ${ins.total_trades} trades`;
+
+  // Per-city: win rate + PF
+  $id("insights-city").innerHTML = ins.by_city.length ? ins.by_city.map(c => {
+    const pfTxt = c.profit_factor != null ? `PF ${c.profit_factor.toFixed(2)}` : "PF —";
+    const pfColor = c.profit_factor != null && c.profit_factor >= 1 ? "var(--green)" : "var(--red)";
+    return `<div class="bar-row">
+      <div class="bar-row-labels">
+        <span>${c.city} <span style="color:var(--dim);font-size:.6rem">${c.trades}t</span></span>
+        <span style="display:flex;gap:10px">
+          <span style="color:${c.win_rate>=0.5?'var(--green)':'var(--red)'}">${(c.win_rate*100).toFixed(0)}%</span>
+          <span style="color:${pfColor}">${pfTxt}</span>
+        </span>
+      </div>
       ${winBar(c.win_rate)}
-    </div>`).join("") || `<p style="color:var(--dim);font-size:.7rem">Mínimo 2 trades por ciudad</p>`;
-  $id("insights-hour").innerHTML = ins.by_hour.map(h =>
-    `<div class="bar-row">
-      <div class="bar-row-labels"><span>${String(h.hour).padStart(2,"0")}:00 UTC</span><span>${h.trades} trades</span></div>
-      ${winBar(h.win_rate)}
-    </div>`).join("") || `<p style="color:var(--dim);font-size:.7rem">Mínimo 2 trades por hora</p>`;
+    </div>`;
+  }).join("") : `<p style="color:var(--dim);font-size:.7rem">Mínimo 2 trades por ciudad</p>`;
+
+  // PnL by city bar chart
+  const cities = ins.by_city.map(c => c.city);
+  const pnls   = ins.by_city.map(c => c.pnl || 0);
+  const colors = pnls.map(v => v >= 0 ? "rgba(0,255,136,0.7)" : "rgba(255,51,85,0.7)");
+  const borders = pnls.map(v => v >= 0 ? "#00ff88" : "#ff3355");
+
+  const canv = document.getElementById("cityPnlChart");
+  if (canv) {
+    if (cityPnlChartInst) cityPnlChartInst.destroy();
+    cityPnlChartInst = new Chart(canv.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: cities,
+        datasets: [{
+          data: pnls,
+          backgroundColor: colors,
+          borderColor: borders,
+          borderWidth: 1,
+          borderRadius: 2,
+        }]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#111118",
+            borderColor: "#1e1e2e",
+            borderWidth: 1,
+            bodyColor: "#cccce0",
+            callbacks: {
+              label: ctx => {
+                const v = ctx.parsed.x;
+                return `  P&L: ${v >= 0 ? "+" : ""}$${v.toFixed(2)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: "#444466", font: { family: "'JetBrains Mono',monospace", size: 10 },
+                     callback: v => (v >= 0 ? "+" : "") + "$" + v.toFixed(2) },
+            grid: { color: "#16161f" },
+          },
+          y: {
+            ticks: { color: "#cccce0", font: { family: "'JetBrains Mono',monospace", size: 10 } },
+            grid: { display: false },
+          }
+        },
+        animation: { duration: 300 },
+      }
+    });
+  }
 }
 
 // ── BOT CONTROLS ──────────────────────────────────────────────────────────────

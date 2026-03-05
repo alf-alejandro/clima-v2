@@ -157,7 +157,8 @@ class AutoPortfolio:
             return None
 
         by_hour = defaultdict(lambda: {"won": 0, "total": 0})
-        by_city = defaultdict(lambda: {"won": 0, "total": 0})
+        by_city = defaultdict(lambda: {"won": 0, "total": 0, "pnl": 0.0,
+                                       "gross_win": 0.0, "gross_loss": 0.0})
 
         for pos in closed:
             try:
@@ -165,19 +166,26 @@ class AutoPortfolio:
             except Exception:
                 hour = -1
             city = pos.get("city", "unknown")
-            won  = pos["pnl"] > 0
+            pnl  = pos["pnl"]
+            won  = pnl > 0
 
             if hour >= 0:
                 by_hour[hour]["total"] += 1
                 if won:
                     by_hour[hour]["won"] += 1
 
-            by_city[city]["total"] += 1
+            by_city[city]["total"]      += 1
+            by_city[city]["pnl"]        += pnl
+            by_city[city]["gross_win"]  += max(pnl, 0.0)
+            by_city[city]["gross_loss"] += abs(min(pnl, 0.0))
             if won:
                 by_city[city]["won"] += 1
 
-        total     = len(closed)
-        won_total = sum(1 for p in closed if p["pnl"] > 0)
+        total       = len(closed)
+        won_total   = sum(1 for p in closed if p["pnl"] > 0)
+        gross_wins  = sum(p["pnl"] for p in closed if p["pnl"] > 0)
+        gross_loss  = abs(sum(p["pnl"] for p in closed if p["pnl"] <= 0))
+        pf_global   = round(gross_wins / gross_loss, 2) if gross_loss > 0 else None
 
         hour_stats = sorted(
             [{"hour": h, "win_rate": round(v["won"] / v["total"], 2), "trades": v["total"]}
@@ -185,7 +193,12 @@ class AutoPortfolio:
             key=lambda x: x["win_rate"], reverse=True,
         )
         city_stats = sorted(
-            [{"city": c, "win_rate": round(v["won"] / v["total"], 2), "trades": v["total"]}
+            [{"city": c,
+              "win_rate":      round(v["won"] / v["total"], 2),
+              "trades":        v["total"],
+              "pnl":           round(v["pnl"], 2),
+              "profit_factor": round(v["gross_win"] / v["gross_loss"], 2) if v["gross_loss"] > 0 else None,
+             }
              for c, v in by_city.items() if v["total"] >= 2],
             key=lambda x: x["win_rate"], reverse=True,
         )
@@ -193,6 +206,7 @@ class AutoPortfolio:
         return {
             "overall_win_rate": round(won_total / total, 2),
             "total_trades":     total,
+            "profit_factor":    pf_global,
             "by_hour":          hour_stats[:6],
             "by_city":          city_stats[:6],
         }
