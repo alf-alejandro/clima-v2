@@ -60,6 +60,7 @@ CITY_WINDOWS = {
     "buenos-aires": (11,  0, 16,  0),
     "miami":        (11,  0, 16,  0),
     "nyc":          (11,  0, 16,  0),
+    "toronto":      (11,  0, 16,  0),
     "sao-paulo":    (11,  0, 14,  0),
     "seattle":      (16,  0, 19,  0),
     "seoul":        (23,  0,  2,  0),  # cruza medianoche
@@ -117,6 +118,7 @@ WEATHER_CITIES = [
     "buenos-aires",
     "miami",
     "nyc",
+    "toronto",
     "sao-paulo",
     "seattle",
     "seoul",
