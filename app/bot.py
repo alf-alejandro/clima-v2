@@ -1,4 +1,4 @@
-"""bot.py — V2: Focused YES — 5 cities, ventana horaria Chile.
+"""bot.py — V2: Focused YES — 6 cities, ventanas horarias por ciudad (Chile).
 
 Cycle:
   1. Gamma discovery → candidates (NO 0.88-0.97 = YES 0.03-0.12)
@@ -8,19 +8,16 @@ Cycle:
   5. Open positions para entradas confirmadas
   6. Update prices para posiciones abiertas
   7. Exits normales: YES >= 0.15 (TP), YES >= 0.99 (WON), NO >= 0.99 (LOST)
-  8. Exits horarios (hora Chile):
-       16:15–16:59 → cierra posiciones en verde (P&L > 0)
-       17:00+      → cierra TODAS las posiciones al precio actual
+  8. Cierre forzoso por ciudad: al llegar a la hora de cierre de cada ciudad
   9. Purge stale scorer history
 
-Regímenes:
-  SEMANA (lun–vie): YES 6–12¢, score ≥ 60  → alta volatilidad, gana
-  FINDE  (sáb–dom): bloqueado por defecto   → baja volatilidad, pierde
-                    (WEEKEND_ENABLED=true activa umbrales WEEKEND_*)
-
-V2 restricciones:
-  - Solo ciudades: buenos-aires, miami, toronto, seattle, nyc
-  - Solo abre posiciones entre 12:00 y 16:14 hora Chile
+Ventanas horarias (hora Chile):
+  Buenos Aires  11:00–16:00
+  Miami         11:00–16:00
+  NYC           11:00–16:00
+  São Paulo     11:00–14:00
+  Seattle       16:00–19:00
+  Seoul         23:00–02:00  (cruza medianoche)
 """
 
 import threading
@@ -37,9 +34,7 @@ from app.config import (
     WEEKEND_ENABLED,
     WEEKDAY_YES_MIN, WEEKDAY_YES_MAX, WEEKDAY_MIN_SCORE,
     WEEKEND_YES_MIN, WEEKEND_YES_MAX, WEEKEND_MIN_SCORE,
-    OBSERVER_UTC_OFFSET,
-    GREEN_CLOSE_HOUR, GREEN_CLOSE_MINUTE,
-    FORCE_CLOSE_HOUR, FORCE_CLOSE_MINUTE,
+    OBSERVER_UTC_OFFSET, CITY_WINDOWS,
 )
 
 log = logging.getLogger(__name__)
@@ -53,8 +48,22 @@ def chile_mins() -> int:
     return now.hour * 60 + now.minute
 
 
-_GREEN_CLOSE_MINS = GREEN_CLOSE_HOUR * 60 + GREEN_CLOSE_MINUTE  # 975 (16:15)
-_FORCE_CLOSE_MINS = FORCE_CLOSE_HOUR * 60 + FORCE_CLOSE_MINUTE  # 1020 (17:00)
+def city_past_close(city: str, c_mins: int) -> bool:
+    """True si la ventana horaria de la ciudad ya cerró (hora Chile).
+
+    Soporta ventanas que cruzan medianoche (ej. Seoul 23:00–02:00):
+    en ese caso 'pasado el cierre' es el rango diurno entre close y open.
+    """
+    win = CITY_WINDOWS.get(city)
+    if not win:
+        return False
+    open_h, open_m, close_h, close_m = win
+    open_mins  = open_h  * 60 + open_m
+    close_mins = close_h * 60 + close_m
+    if open_mins < close_mins:
+        return c_mins >= close_mins
+    else:  # cruza medianoche: pasado cierre = fuera de la ventana nocturna
+        return close_mins <= c_mins < open_mins
 
 
 def is_weekend() -> bool:
@@ -127,7 +136,7 @@ class BotRunner:
     # ── Main scan loop ─────────────────────────────────────────────────────────
 
     def _run(self):
-        log.info("Bot V2 iniciado — 5 ciudades · 12-17h local · Score-Filtered YES")
+        log.info("Bot V2 iniciado — 6 ciudades · ventanas por ciudad · Score-Filtered YES")
         while not self._stop_event.is_set():
             try:
                 self._cycle()
@@ -319,44 +328,26 @@ class BotRunner:
                         ),
                     )
 
-            # ── Cierres horarios (hora Chile) ──────────────────────────────────
+            # ── Cierres forzosos por ciudad (hora Chile) ────────────────────
             mins = chile_mins()
-            if mins >= _FORCE_CLOSE_MINS:
-                # 17:00+ → cierra TODO al precio actual
-                for cid, pos in list(portfolio.positions.items()):
+            for cid, pos in list(portfolio.positions.items()):
+                city = pos.get("city", "")
+                if city_past_close(city, mins):
                     current_yes = pos.get("current_yes", pos.get("entry_yes", 0.0))
                     pnl = round(pos["tokens"] * current_yes - pos["allocated"], 2)
                     sign = "+" if pnl >= 0 else ""
                     gain_pct = pnl / pos["allocated"] * 100 if pos["allocated"] else 0
                     log.info(
-                        "Cierre forzado 17:00h %s — YES=%.1f¢ P&L=%s$%.2f",
-                        pos["question"][:40], current_yes * 100, sign, abs(pnl),
+                        "Cierre forzoso [%s] %s — YES=%.1f¢ P&L=%s$%.2f",
+                        city, pos["question"][:35], current_yes * 100, sign, abs(pnl),
                     )
                     portfolio._close_position(
                         cid, "FORCE_CLOSE", pnl,
                         resolution=(
-                            f"Cierre forzado 17:00h · YES={current_yes*100:.1f}¢ "
+                            f"Cierre forzoso ventana {city} · YES={current_yes*100:.1f}¢ "
                             f"({sign}{gain_pct:.0f}%)"
                         ),
                     )
-            elif mins >= _GREEN_CLOSE_MINS:
-                # 16:15–16:59 → cierra solo las que están en verde
-                for cid, pos in list(portfolio.positions.items()):
-                    current_yes = pos.get("current_yes", pos.get("entry_yes", 0.0))
-                    pnl = round(pos["tokens"] * current_yes - pos["allocated"], 2)
-                    if pnl > 0:
-                        gain_pct = pnl / pos["allocated"] * 100
-                        log.info(
-                            "Cierre en verde 16:15h %s — YES=%.1f¢ +$%.2f",
-                            pos["question"][:40], current_yes * 100, pnl,
-                        )
-                        portfolio._close_position(
-                            cid, "TAKE_PROFIT", pnl,
-                            resolution=(
-                                f"Cierre en verde 16:15h · YES={current_yes*100:.1f}¢ "
-                                f"(entrada {pos['entry_yes']*100:.1f}¢, +{gain_pct:.0f}%)"
-                            ),
-                        )
 
             portfolio.record_capital()
 

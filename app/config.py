@@ -1,15 +1,19 @@
 import os
 
-# --- Strategy V2: Focused YES (12–17h Chile time, 5 cities) ---
-# Base: Score-Filtered YES (6-12¢, score ≥ 60, TP 15¢, sin stop loss)
-# V2 restricts entries to 12–17h hora Chile (UTC-3) only, and to 5 target cities:
-#   Buenos Aires, Miami, Toronto, Seattle, NYC
+# --- Strategy V2: Focused YES (ventanas por ciudad, hora Chile) ---
+# Base: Score-Filtered YES (6-11.5¢, score ≥ 60, TP 15¢, sin stop loss)
+# Cada ciudad tiene su propia ventana horaria (hora Chile UTC-3).
+# Al cierre de cada ventana → cierre forzoso de sus posiciones.
 #
-# Observación: el horario 12-17h Chile es la ventana de operación del trader.
-#              Se usa hora Chile como referencia única para todas las ciudades.
+# Ciudades y ventanas (hora Chile):
+#   Buenos Aires  11:00–16:00
+#   Miami         11:00–16:00
+#   NYC           11:00–16:00
+#   São Paulo     11:00–14:00
+#   Seattle       16:00–19:00
+#   Seoul         23:00–02:00  (cruza medianoche)
 #
-# Por defecto: fines de semana BLOQUEADOS (WEEKEND_ENABLED=false)
-# Si WEEKEND_ENABLED=true: usa umbrales WEEKEND_* (más conservadores)
+# Por defecto: fines de semana HABILITADOS (mismas condiciones que semana)
 
 # ── Day-of-week regime ────────────────────────────────────────────────────────
 WEEKEND_ENABLED = os.environ.get("WEEKEND_ENABLED", "true").lower() == "true"
@@ -49,18 +53,17 @@ SCAN_DAYS_AHEAD   = int(os.environ.get("SCAN_DAYS_AHEAD", 1))
 # Todas las horas se evalúan en esta zona horaria
 OBSERVER_UTC_OFFSET = int(os.environ.get("OBSERVER_UTC_OFFSET", -3))
 
-# ── Ventana horaria V2 (hora Chile) ───────────────────────────────────────────
-# 12:00 – 16:14 → apertura normal de posiciones
-# 16:15 – 16:59 → no abre más, cierra las que estén en verde
-# 17:00+        → cierra todas las posiciones al precio actual
-ENTRY_OPEN_HOUR     = int(os.environ.get("ENTRY_OPEN_HOUR",    11))
-ENTRY_OPEN_MINUTE   = int(os.environ.get("ENTRY_OPEN_MINUTE",   0))
-ENTRY_CLOSE_HOUR    = int(os.environ.get("ENTRY_CLOSE_HOUR",   16))
-ENTRY_CLOSE_MINUTE  = int(os.environ.get("ENTRY_CLOSE_MINUTE", 15))
-GREEN_CLOSE_HOUR    = int(os.environ.get("GREEN_CLOSE_HOUR",   16))
-GREEN_CLOSE_MINUTE  = int(os.environ.get("GREEN_CLOSE_MINUTE", 15))
-FORCE_CLOSE_HOUR    = int(os.environ.get("FORCE_CLOSE_HOUR",   17))
-FORCE_CLOSE_MINUTE  = int(os.environ.get("FORCE_CLOSE_MINUTE",  0))
+# ── Ventanas horarias por ciudad (hora Chile) ─────────────────────────────────
+# Formato: (open_h, open_m, close_h, close_m)
+# A la hora de cierre se fuerza el cierre de todas las posiciones de esa ciudad.
+CITY_WINDOWS = {
+    "buenos-aires": (11,  0, 16,  0),
+    "miami":        (11,  0, 16,  0),
+    "nyc":          (11,  0, 16,  0),
+    "sao-paulo":    (11,  0, 14,  0),
+    "seattle":      (16,  0, 19,  0),
+    "seoul":        (23,  0,  2,  0),  # cruza medianoche
+}
 MAX_POSITIONS     = int(os.environ.get("MAX_POSITIONS", 20))
 PRICE_UPDATE_INTERVAL = int(os.environ.get("PRICE_UPDATE_INTERVAL", 10))
 
@@ -75,7 +78,7 @@ REGION_MAP = {
     "seattle": "pacific",       "los-angeles": "pacific",
     "london": "europe",         "paris": "europe",        "ankara": "europe",
     "wellington": "southern",   "buenos-aires": "southern", "sao-paulo": "southern",
-    "seoul": "asia",            "toronto": "north_america",
+    "seoul": "asia",
 }
 
 # ── Capital ───────────────────────────────────────────────────────────────────
@@ -109,11 +112,12 @@ CITY_UTC_OFFSET = {
     "buenos-aires": -3,
 }
 
-# ── V2: Solo estas 5 ciudades (mejor performance en horario 12-17h) ───────────
+# ── V2: Ciudades activas con ventana horaria propia ───────────────────────────
 WEATHER_CITIES = [
     "buenos-aires",
     "miami",
-    "toronto",
-    "seattle",
     "nyc",
+    "sao-paulo",
+    "seattle",
+    "seoul",
 ]

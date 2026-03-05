@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 from app.config import (
     GAMMA, WEATHER_CITIES, MIN_YES_PRICE, MAX_YES_PRICE, TAKE_PROFIT_YES,
     MIN_VOLUME, SCAN_DAYS_AHEAD, CITY_UTC_OFFSET, OBSERVER_UTC_OFFSET,
-    ENTRY_OPEN_HOUR, ENTRY_OPEN_MINUTE, ENTRY_CLOSE_HOUR, ENTRY_CLOSE_MINUTE,
+    CITY_WINDOWS,
 )
 
 CLOB = "https://clob.polymarket.com"
@@ -53,10 +53,11 @@ def get_prices(m):
 
 
 def city_is_ready(city, scan_date, today):
-    """V2: solo acepta entradas cuando la hora Chile está en la ventana de apertura (12:00–16:14).
+    """V2: acepta entradas solo cuando la hora Chile está en la ventana de apertura de la ciudad.
 
     El check de fecha usa la hora local de la ciudad (para escanear el día correcto).
     El check de ventana horaria usa hora Chile (OBSERVER_UTC_OFFSET), referencia del operador.
+    Soporta ventanas que cruzan medianoche (ej. Seoul 23:00–02:00).
     """
     city_offset = CITY_UTC_OFFSET.get(city)
     if city_offset is None:
@@ -65,12 +66,19 @@ def city_is_ready(city, scan_date, today):
     city_local = now_utc() + timedelta(hours=city_offset)
     if city_local.date() != scan_date:
         return False
-    # ¿Estamos dentro de la ventana de apertura (12:00 – 16:14) hora Chile?
+    # ¿Estamos dentro de la ventana horaria de esta ciudad (hora Chile)?
+    win = CITY_WINDOWS.get(city)
+    if not win:
+        return False
+    open_h, open_m, close_h, close_m = win
     chile_now  = now_utc() + timedelta(hours=OBSERVER_UTC_OFFSET)
-    chile_mins = chile_now.hour * 60 + chile_now.minute
-    open_mins  = ENTRY_OPEN_HOUR  * 60 + ENTRY_OPEN_MINUTE   # 720
-    close_mins = ENTRY_CLOSE_HOUR * 60 + ENTRY_CLOSE_MINUTE  # 975
-    return open_mins <= chile_mins < close_mins
+    c_mins     = chile_now.hour * 60 + chile_now.minute
+    open_mins  = open_h  * 60 + open_m
+    close_mins = close_h * 60 + close_m
+    if open_mins < close_mins:
+        return open_mins <= c_mins < close_mins
+    else:  # cruza medianoche (ej. Seoul 23:00–02:00)
+        return c_mins >= open_mins or c_mins < close_mins
 
 
 def build_event_slug(city, date):
