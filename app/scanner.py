@@ -154,10 +154,9 @@ def fetch_yes_price_clob(yes_token_id):
             yes_price = min(float(a["price"]) for a in asks)
         elif bids:
             yes_price = max(float(b["price"]) for b in bids)
-        else:
-            ltp = data.get("last_trade_price")
-            if ltp:
-                yes_price = float(ltp)
+        # No fallback to last_trade_price: an empty book means the market
+        # has resolved or gone illiquid — last_trade_price can be ~0 from a
+        # resolution trade, which would make force-close look like a total loss.
 
         if yes_price is None or not (0.0 < yes_price < 1.0):
             return None, None
