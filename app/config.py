@@ -6,7 +6,7 @@ import os
 # Al cierre de cada ventana → cierre forzoso de sus posiciones.
 #
 # Ciudades y ventanas (hora Chile):
-#   Atlanta       11:00–03:00  (cruza medianoche)
+#   Atlanta       11:00–15:00
 #   Buenos Aires  11:00–17:00
 #   Miami         11:00–17:00
 #   NYC           11:00–17:00
@@ -59,7 +59,7 @@ OBSERVER_UTC_OFFSET = int(os.environ.get("OBSERVER_UTC_OFFSET", -3))
 # Formato: (open_h, open_m, close_h, close_m)
 # A la hora de cierre se fuerza el cierre de todas las posiciones de esa ciudad.
 CITY_WINDOWS = {
-    "atlanta":      (11,  0,  3,  0),  # cruza medianoche
+    "atlanta":      (11,  0, 15,  0),
     "buenos-aires": (11,  0, 17,  0),
     "miami":        (11,  0, 17,  0),
     "nyc":          (11,  0, 17,  0),
