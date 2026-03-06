@@ -245,13 +245,16 @@ class AutoPortfolio:
 
     def record_capital(self):
         ts = now_utc().isoformat()
-        point = {"time": ts, "capital": round(self.capital_total, 2)}
+        # Mark-to-market: available cash + current value of open positions
+        open_value  = sum(pos["tokens"] * pos["current_yes"] for pos in self.positions.values())
+        mtm_capital = round(self.capital_disponible + open_value, 2)
+        point = {"time": ts, "capital": mtm_capital}
         self.capital_history.append(point)
         if len(self.capital_history) > 500:
             self.capital_history = self.capital_history[-500:]
         self._cap_record_count += 1
         if self._cap_record_count % 120 == 0:  # cada ~1h (120 ciclos × 30s)
-            db.append_capital_point(ts, round(self.capital_total, 2))
+            db.append_capital_point(ts, mtm_capital)
 
     def snapshot(self):
         pnl = self.capital_total - self.capital_inicial
