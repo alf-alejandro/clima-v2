@@ -12,7 +12,6 @@ import os
 #   NYC           11:00–17:00
 #   Paris         06:00–10:00
 #   Toronto       14:00–17:00
-#   São Paulo     11:00–15:00
 #   Seattle       16:00–20:00
 #   Seoul         23:00–03:00  (cruza medianoche)
 #
@@ -66,7 +65,6 @@ CITY_WINDOWS = {
     "nyc":          (11,  0, 17,  0),
     "paris":        ( 6,  0, 10,  0),
     "toronto":      (14,  0, 17,  0),
-    "sao-paulo":    (11,  0, 15,  0),
     "seattle":      (16,  0, 20,  0),
     "seoul":        (23,  0,  3,  0),  # cruza medianoche
 }
@@ -126,7 +124,6 @@ WEATHER_CITIES = [
     "nyc",
     "paris",
     "toronto",
-    "sao-paulo",
     "seattle",
     "seoul",
 ]
