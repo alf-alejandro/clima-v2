@@ -9,12 +9,15 @@ import os
 #   Ankara        04:00–06:00
 #   Atlanta       11:00–15:00
 #   Buenos Aires  11:00–17:00
+#   London        08:00–10:00
 #   Miami         11:00–17:00
 #   NYC           11:00–17:00
+#   Paris         06:00–10:00
 #   Toronto       11:00–17:00
 #   São Paulo     11:00–15:00
 #   Seattle       16:00–20:00
 #   Seoul         23:00–03:00  (cruza medianoche)
+#   Wellington    18:00–20:00
 #
 # Por defecto: fines de semana HABILITADOS (mismas condiciones que semana)
 
@@ -63,12 +66,15 @@ CITY_WINDOWS = {
     "ankara":       ( 4,  0,  6,  0),
     "atlanta":      (11,  0, 15,  0),
     "buenos-aires": (11,  0, 17,  0),
+    "london":       ( 8,  0, 10,  0),
     "miami":        (11,  0, 17,  0),
     "nyc":          (11,  0, 17,  0),
+    "paris":        ( 6,  0, 10,  0),
     "toronto":      (11,  0, 17,  0),
     "sao-paulo":    (11,  0, 15,  0),
     "seattle":      (16,  0, 20,  0),
     "seoul":        (23,  0,  3,  0),  # cruza medianoche
+    "wellington":   (18,  0, 20,  0),
 }
 MAX_POSITIONS     = int(os.environ.get("MAX_POSITIONS", 20))
 PRICE_UPDATE_INTERVAL = int(os.environ.get("PRICE_UPDATE_INTERVAL", 10))
@@ -123,10 +129,13 @@ WEATHER_CITIES = [
     "ankara",
     "atlanta",
     "buenos-aires",
+    "london",
     "miami",
     "nyc",
+    "paris",
     "toronto",
     "sao-paulo",
     "seattle",
     "seoul",
+    "wellington",
 ]
