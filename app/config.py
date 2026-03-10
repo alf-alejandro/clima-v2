@@ -6,14 +6,15 @@ import os
 # Al cierre de cada ventana → cierre forzoso de sus posiciones.
 #
 # Ciudades y ventanas (hora Chile):
-#   Buenos Aires  11:00–17:00
+#   Buenos Aires  11:00–15:00
 #   London        08:00–10:00
 #   Miami         11:00–17:00
-#   NYC           11:00–17:00
 #   Paris         06:00–10:00
 #   Toronto       14:00–17:00
 #   Seattle       16:00–20:00
-#   Seoul         23:00–03:00  (cruza medianoche)
+#   Wellington    19:00–21:30
+#   Sao Paulo     11:00–13:00
+#   Seoul         00:00–01:00
 #
 # Por defecto: fines de semana HABILITADOS (mismas condiciones que semana)
 
@@ -59,14 +60,15 @@ OBSERVER_UTC_OFFSET = int(os.environ.get("OBSERVER_UTC_OFFSET", -3))
 # Formato: (open_h, open_m, close_h, close_m)
 # A la hora de cierre se fuerza el cierre de todas las posiciones de esa ciudad.
 CITY_WINDOWS = {
-    "buenos-aires": (11,  0, 17,  0),
+    "buenos-aires": (11,  0, 15,  0),
     "london":       ( 8,  0, 10,  0),
     "miami":        (11,  0, 17,  0),
-    "nyc":          (11,  0, 17,  0),
     "paris":        ( 6,  0, 10,  0),
     "toronto":      (14,  0, 17,  0),
     "seattle":      (16,  0, 20,  0),
-    "seoul":        (23,  0,  3,  0),  # cruza medianoche
+    "wellington":   (19,  0, 21, 30),
+    "sao-paulo":    (11,  0, 13,  0),
+    "seoul":        ( 0,  0,  1,  0),
 }
 MAX_POSITIONS     = int(os.environ.get("MAX_POSITIONS", 20))
 PRICE_UPDATE_INTERVAL = int(os.environ.get("PRICE_UPDATE_INTERVAL", 10))
@@ -121,9 +123,10 @@ WEATHER_CITIES = [
     "buenos-aires",
     "london",
     "miami",
-    "nyc",
     "paris",
     "toronto",
     "seattle",
+    "wellington",
+    "sao-paulo",
     "seoul",
 ]
